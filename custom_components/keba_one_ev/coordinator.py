@@ -28,6 +28,7 @@ from __future__ import annotations
 import json
 import logging
 import socket
+import time
 from datetime import timedelta
 from typing import Any
 
@@ -173,7 +174,7 @@ class KebaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "session_id":       r100.get("Session ID", 0) if r100 else 0,
             "session_started":  r100.get("started", "") if r100 else "",   # ISO timestamp
             "session_ended":    r100.get("ended", "") if r100 else "",
-            "session_duration_s": r100.get("started[s]", 0) if r100 else 0,  # seconds since start
+            "session_duration_s": int(time.time() - r100.get("started[s]", time.time())) if r100 else 0,  # seconds since start
             "rfid_tag":         r100.get("RFID tag", "") if r100 else "",
             "rfid_class":       r100.get("RFID class", "") if r100 else "",
             "session_reason":   r100.get("reason", 0) if r100 else 0,  # stop reason code
