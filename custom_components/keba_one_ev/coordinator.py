@@ -179,15 +179,29 @@ class KebaCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "session_reason":   r100.get("reason", 0) if r100 else 0,  # stop reason code
         }
 
-    def _fetch_all(self) -> tuple:
+    def _fetch_all(self, retry: int = 2) -> tuple:
         """Blocking helper: send all four report requests sequentially.
+
+        retry specifies how many additional attempts should be done to fetch data.
 
         Must run in an executor thread (called via async_add_executor_job).
         Sends each report independently so partial results are still usable
         if one report times out.
         """
-        r1   = self._send("report 1")
-        r2   = self._send("report 2")
-        r3   = self._send("report 3")
-        r100 = self._send("report 100")
-        return r1, r2, r3, r100
+        data = {
+            "r1": {"cmd": "report 1", "val": None},
+            "r2": {"cmd": "report 2", "val": None},
+            "r3": {"cmd": "report 3", "val": None},
+            "r100": {"cmd": "report 100", "val": None}
+        }
+
+        for item in data.values():
+            item["val"] = self._send(item["cmd"])
+        
+            if item["val"] is None:
+                for _ in range(retry):
+                    item["val"] = self._send(item["cmd"])
+                    if item["val"] is not None:
+                        break
+
+        return tuple(item["val"] for item in data.values())
